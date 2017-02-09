@@ -1,0 +1,31 @@
+# neutron-rootwrap command filters for nodes on which neutron is
+# expected to control network
+#
+# This file should be owned by (and only-writeable by) the root user
+
+# format seems to be
+# cmd-name: filter-name, raw-command, user, args
+
+[Filters]
+
+# linuxbridge-agent
+# unclear whether both variants are necessary, but I'm transliterating
+# from the old mechanism
+brctl: CommandFilter, brctl, root
+bridge: CommandFilter, bridge, root
+
+# ip_lib
+ip: IpFilter, ip, root
+find: RegExpFilter, find, root, find, /sys/class/net, -maxdepth, 1, -type, l, -printf, %.*
+ip_exec: IpNetnsExecFilter, ip, root
+
+# tc commands needed for QoS support
+tc_add_qdisc: RegExpFilter, tc, root, tc, qdisc, add, dev, .+, (root|parent .+), handle, .+, htb
+tc_add_qdisc_ingress: RegExpFilter, tc, root, tc, qdisc, add, dev, .+, ingress, handle, .+
+tc_show_qdisc: RegExpFilter, tc, root, tc, qdisc, show, dev, .+
+tc_del_qdisc: RegExpFilter, tc, root, tc, qdisc, del, dev, .+, (root|ingress|parent .+)
+tc_add_class: RegExpFilter, tc, root, tc, class, replace, dev, .+, parent, .+, classid, .+, .+, rate, .+
+tc_add_class_max: RegExpFilter, tc, root, tc, class, replace, dev, .+, parent, .+, classid, .+, .+, rate, .+, ceil, .+, burst, .+
+tc_show_class: RegExpFilter, tc, root, tc, class, show, dev, .+
+tc_show_filter: RegExpFilter, tc, root, tc, filter, show, dev, .+, parent, .+
+tc_add_filter_ifb: RegExpFilter, tc, root, tc, filter, add, dev, .+, parent, .+, protocol, all, u32, match, u32, 0, 0, action, mirred, egress, redirect, dev, .+
